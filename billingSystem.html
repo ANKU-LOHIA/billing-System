@@ -1,0 +1,235 @@
+<template>
+    <lightning-card title="Billing System" icon-name="standard:opportunity">
+        <div class="slds-p-around_medium">
+            <!-- Customer Section -->
+            <div class="slds-box">
+                <h2 class="slds-text-heading_medium slds-m-bottom_medium">Customer Information</h2>
+                <lightning-input label="Name" required value={customerName} onchange={handleNameChange}></lightning-input>
+                <lightning-input type="email" label="Email" required value={customerEmail} onchange={handleCustomerChange} data-field="email"></lightning-input>
+                <lightning-input type="tel" label="Phone" required value={customerPhone} onchange={handleCustomerChange} data-field="phone"></lightning-input>
+                
+                <!-- Updated Customer Search Results -->
+                <template if:true={customerSearchResults.length}>
+                    <div class="slds-m-top_small">
+                        <h3 class="slds-text-heading_small">Matching Customers</h3>
+                        <div class="slds-list_dotted">
+                            <template for:each={customerSearchResults} for:item="customer">
+                                <div key={customer.Id} class="slds-item slds-m-bottom_x-small">
+                                    <button 
+                                        class="slds-button slds-button_reset slds-text-link"
+                                        data-id={customer.Id}
+                                        onclick={handleSelectCustomer}>
+                                        {customer.Name} - {customer.Email__c} - {customer.Phone}
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Price Book Selection -->
+            <div class="slds-box slds-m-top_medium">
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Price Book</h2>
+                <lightning-radio-group name="pricebook"
+                                        label="Select Price Book"
+                                        options={pricebookOptions}
+                                        value={selectedPricebook}
+                                        type="radio"
+                                        onchange={handlePricebookChange}>
+                </lightning-radio-group>
+            </div>
+
+            <!-- Product Section -->
+            <div class="slds-box slds-m-top_medium">
+                <h2 class="slds-text-heading_medium slds-m-bottom_medium">Products</h2>
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <lightning-button 
+                            label="Scan Product" 
+                            icon-name="utility:scan"
+                            onclick={handleScan}>
+                        </lightning-button>
+                    </div>
+                    <div class="slds-col">
+                        <lightning-button 
+                            label="Add Product" 
+                            icon-name="utility:add"
+                            onclick={openProductModal}>
+                        </lightning-button>
+                    </div>
+                </div>
+
+                <!-- Product Table -->
+                <lightning-datatable
+                    key-field="id"
+                    data={products}
+                    columns={columns}
+                    onsave={handleSaveEdit}
+                    draft-values={draftValues}
+                    hide-checkbox-column>
+                </lightning-datatable>
+            </div>
+
+            <!-- Billing Mode -->
+            <div class="slds-box slds-m-top_medium">
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Billing Mode</h2>
+                <lightning-button-group>
+                    <lightning-button
+                        label="With GST"
+                        value="With GST"
+                        onclick={handleBillingMode}
+                        variant={withGSTVariant}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Without GST"
+                        value="Without GST"
+                        onclick={handleBillingMode}
+                        variant={withoutGSTVariant}>
+                    </lightning-button>
+                </lightning-button-group>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="slds-box slds-m-top_medium">
+                <h2 class="slds-text-heading_medium slds-m-bottom_medium">Summary</h2>
+                <div class="slds-grid slds-wrap">
+                    <div class="slds-col slds-size_1-of-1">
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-2"><strong>Subtotal:</strong></div>
+                            <div class="slds-col slds-size_1-of-2 slds-text-align_right">₹{formattedSubtotal}</div>
+                        </div>
+                        <div class="slds-grid slds-gutters">
+                            <div class="slds-col slds-size_1-of-2"><strong>Total GST:</strong></div>
+                            <div class="slds-col slds-size_1-of-2 slds-text-align_right">₹{formattedTotalGST}</div>
+                        </div>
+                        <div class="slds-grid slds-gutters slds-m-top_small">
+                            <div class="slds-col slds-size_1-of-2"><strong>Grand Total:</strong></div>
+                            <div class="slds-col slds-size_1-of-2 slds-text-align_right slds-text-heading_medium">₹{formattedGrandTotal}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="slds-m-top_medium slds-grid slds-gutters">
+                <div class="slds-col">
+                    <lightning-button label="Save & Email" variant="brand" onclick={handleSave}></lightning-button>
+                </div>
+                <div class="slds-col">
+                    <lightning-button label="Cancel" variant="neutral" onclick={handleCancel}></lightning-button>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+
+    <!-- Add Product Modal -->
+    <template if:true={showProductModal}>
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-text-heading_medium">Add Product</h2>
+                </header>
+                <div class="slds-modal__content">
+                    <lightning-input
+                        type="search"
+                        label="Search Products"
+                        placeholder="Enter product name or code"
+                        value={searchTerm}
+                        onchange={handleSearchChange}>
+                    </lightning-input>
+                    <lightning-button label="Search" class="slds-m-top_small" onclick={handleSearch}></lightning-button>
+                    
+                    <div class="slds-m-top_medium">
+                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Price</th>
+                                    <th>GST Applicable</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={formattedSearchResults} for:item="product">
+                                    <tr key={product.Id}>
+                                        <td>{product.Name}</td>
+                                        <td>{product.ProductCode}</td>
+                                        <td>{product.unitPriceFormatted}</td>
+                                        <td>{product.gstDisplay}</td>
+                                        <td>
+                                            <lightning-button-icon 
+                                                icon-name="utility:add" 
+                                                alternative-text="Add"
+                                                data-id={product.Id}
+                                                onclick={handleSelectProduct}>
+                                            </lightning-button-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!--Scanner Modal -->
+    <template if:true={showScannerModal}>
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={closeScanner}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-text-heading_medium">Scan Product</h2>
+                </header>
+                <div class="slds-modal__content">
+                    <div class="scanner-container slds-align_absolute-center" style="min-height: 300px; position: relative;">
+                        <video class="scanner-video" playsinline></video>
+                        <canvas class="scanner-canvas" hidden></canvas>
+                        
+                        <!-- Loading Indicator -->
+                        <template if:true={isCameraLoading}>
+                            <div class="slds-align_absolute-center" style="position: absolute; inset: 0;">
+                                <lightning-spinner alternative-text="Loading camera"></lightning-spinner>
+                            </div>
+                        </template>
+                        
+                        <!-- Manual Option -->
+                        <template if:true={showManualOption}>
+                            <div class="slds-align_absolute-center" style="position: absolute; inset: 0; padding: 1rem;">
+                                <p class="slds-text-heading_small slds-m-bottom_medium">
+                                    Unable to access camera
+                                </p>
+                                <lightning-button
+                                    label="Add Product Manually"
+                                    variant="brand"
+                                    onclick={openProductModal}>
+                                </lightning-button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Add Product Manually"
+                        variant="neutral"
+                        onclick={openProductModal}>
+                    </lightning-button>
+                    <lightning-button label="Cancel" onclick={closeScanner}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

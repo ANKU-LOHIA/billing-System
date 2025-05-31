@@ -1,0 +1,117 @@
+<apex:page controller="PDFGenerator" renderAs="pdf" applyBodyTag="false" showHeader="false">
+    <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; font-size: 12px; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .header h1 { font-size: 18px; margin: 0; }
+                .company-info { margin-bottom: 15px; }
+                .section { margin-bottom: 10px; }
+                .section h2 { font-size: 16px; margin: 5px 0; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                th, td { border: 1px solid #000; padding: 5px; }
+                th { background-color: #f2f2f2; text-align: left; }
+                .text-right { text-align: right; }
+                .text-center { text-align: center; }
+                .summary { width: 50%; margin-left: auto; }
+                .summary p { margin: 5px 0; }
+                .footer { margin-top: 20px; text-align: center; font-style: italic; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>INVOICE</h1>
+                <p>Invoice Date: 
+                    <apex:outputText value="{0,date,dd-MM-yyyy}">
+                        <apex:param value="{!TODAY()}" />
+                    </apex:outputText>
+                </p>
+            </div>
+            
+            <!-- Fixed company info display -->
+            <div class="company-info">
+                <p><strong>Company:</strong> 
+                    <apex:outputText value="{!companyInfo.Company_Name__c}" 
+                                    rendered="{!NOT(ISNULL(companyInfo))}"/>
+                </p>
+                <p><strong>GST Number:</strong> 
+                    <apex:outputText value="{!companyInfo.GST_Number__c}" 
+                                    rendered="{!NOT(ISNULL(companyInfo))}"/>
+                </p>
+            </div>
+
+           
+            
+            <div class="section">
+                <h2>Customer Information</h2>
+                <p><strong>Name:</strong> {!acc.Name}</p>
+                <p><strong>Email:</strong> {!acc.Email__c}</p>
+                <p><strong>Phone:</strong> {!acc.Phone}</p>
+                <p><strong>Billing Mode:</strong> {!opp.Billing_Mode__c}</p>
+            </div>
+            
+            <div class="section">
+                <h2>Products</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th class="text-center">Quantity</th>
+                            <th class="text-right">Unit Price (₹)</th>
+                            <th class="text-right">GST (₹)</th>
+                            <th class="text-right">Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <apex:repeat value="{!lineItems}" var="item">
+                            <tr>
+                                <td>{!item.Product2.Name}</td>
+                                <td class="text-center">{!item.Quantity}</td>
+                                <td class="text-right">
+                                    <apex:outputText value="{0,number,##,##0.00}">
+                                        <apex:param value="{!item.UnitPrice}" />
+                                    </apex:outputText>
+                                </td>
+                                <td class="text-right">
+                                    <apex:outputText value="{0,number,##,##0.00}">
+                                        <apex:param value="{!item.GST_Amount__c}" />
+                                    </apex:outputText>
+                                </td>
+                                <td class="text-right">
+                                    <apex:outputText value="{0,number,##,##0.00}">
+                                        <apex:param value="{!item.UnitPrice * item.Quantity + item.GST_Amount__c}" />
+                                    </apex:outputText>
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>Summary</h2>
+                <div class="summary">
+                    <p><strong>Subtotal:</strong> 
+                        <span class="text-right" style="float:right;">
+                            ₹<apex:outputText value="{0,number,##,##0.00}"><apex:param value="{!subtotal}"/></apex:outputText>
+                        </span>
+                    </p>
+                    <p><strong>Total GST:</strong> 
+                        <span class="text-right" style="float:right;">
+                            ₹<apex:outputText value="{0,number,##,##0.00}"><apex:param value="{!totalGST}"/></apex:outputText>
+                        </span>
+                    </p>
+                    <p><strong>Grand Total:</strong> 
+                        <span class="text-right" style="float:right; font-weight:bold;">
+                            ₹<apex:outputText value="{0,number,##,##0.00}"><apex:param value="{!grandTotal}"/></apex:outputText>
+                        </span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>This is a computer generated invoice and does not require a signature</p>
+            </div>
+        </body>
+    </html>
+</apex:page>
